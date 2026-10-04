@@ -3306,7 +3306,7 @@ bool HistoryItem::canStopPoll() const {
 }
 
 bool HistoryItem::forbidsForward() const {
-	return (_flags & MessageFlag::NoForwards);
+	return false; // WHY: allow forwarding of any message.
 }
 
 bool HistoryItem::forbidsSaving() const {
