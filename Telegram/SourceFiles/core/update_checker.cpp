@@ -84,7 +84,8 @@ constexpr auto kFlatpakUpdated = "/app/.updated"_cs;
 #ifdef TDESKTOP_DISABLE_AUTOUPDATE
 bool UpdaterIsDisabled = true;
 #else // TDESKTOP_DISABLE_AUTOUPDATE
-bool UpdaterIsDisabled = false;
+// WHY: automatic updates are disabled in this build.
+bool UpdaterIsDisabled = true;
 #endif // TDESKTOP_DISABLE_AUTOUPDATE
 
 std::weak_ptr<Updater> UpdaterInstance;
