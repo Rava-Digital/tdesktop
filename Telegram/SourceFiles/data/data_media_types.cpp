@@ -1009,7 +1009,7 @@ bool MediaPhoto::hasSpoiler() const {
 }
 
 crl::time MediaPhoto::ttlSeconds() const {
-	return _ttlSeconds;
+	return (_ttlSeconds == kTimeToLiveSingleView) ? 0 : _ttlSeconds;
 }
 
 bool MediaPhoto::allowsForward() const {
@@ -1096,7 +1096,7 @@ MediaFile::MediaFile(
 , _spoiler(args.spoiler) {
 	parent->history()->owner().registerDocumentItem(_document, parent);
 
-	if (_ttlSeconds) {
+	if (_ttlSeconds && (_ttlSeconds != kTimeToLiveSingleView)) {
 		_document->setForbidsFileSave();
 	}
 
@@ -1425,7 +1425,7 @@ bool MediaFile::hasSpoiler() const {
 }
 
 crl::time MediaFile::ttlSeconds() const {
-	return _ttlSeconds;
+	return (_ttlSeconds == kTimeToLiveSingleView) ? 0 : _ttlSeconds;
 }
 
 bool MediaFile::allowsForward() const {
