@@ -1873,9 +1873,7 @@ void HistoryItem::markMediaAndMentionRead() {
 		const auto at = std::get_if<TimeId>(&selfdestruct->destructAt);
 		if (at && !*at) {
 			const auto ttl = selfdestruct->timeToLive;
-			if (const auto seconds = std::get_if<TimeId>(&ttl)) {
-				armMediaDestroy(base::unixtime::now() + *seconds);
-			} else {
+			if (!std::get_if<TimeId>(&ttl)) {
 				selfdestruct->destructAt = TimeToLiveSingleView();
 			}
 		}
@@ -3312,8 +3310,6 @@ bool HistoryItem::forbidsForward() const {
 bool HistoryItem::forbidsSaving() const {
 	if (forbidsForward()) {
 		return true;
-	} else if (_media && _media->ttlSeconds()) {
-		return true;
 	} else if (const auto invoice = _media ? _media->invoice() : nullptr) {
 		return HasExtendedMedia(*invoice);
 	}
@@ -3322,8 +3318,7 @@ bool HistoryItem::forbidsSaving() const {
 
 bool HistoryItem::allowsMediaDownloadControls() const {
 	return !forbidsSaving()
-		&& _history->peer->allowsForwarding()
-		&& (!_media || _media->allowsForward());
+		&& _history->peer->allowsForwarding();
 }
 
 bool HistoryItem::canDelete() const {
@@ -8242,23 +8237,7 @@ void HistoryItem::unarmMediaDestroy() {
 }
 
 void HistoryItem::applyMediaContentsRead(TimeId readDate) {
-	const auto media = _media.get();
-	const auto ttl = media ? TimeId(media->ttlSeconds()) : TimeId();
-	if (ttl <= 0) {
-		return;
-	}
-	const auto now = base::unixtime::now();
-	if (media->ttlSecondsSingleView() || !readDate || readDate + ttl <= now) {
-		clearMediaAsExpired();
-	} else {
-		AddComponents(HistoryServiceSelfDestruct::Bit());
-		const auto selfdestruct = Get<HistoryServiceSelfDestruct>();
-		selfdestruct->timeToLive = ttl;
-		selfdestruct->type = media->document()
-			? HistoryServiceSelfDestruct::Type::Video
-			: HistoryServiceSelfDestruct::Type::Photo;
-		armMediaDestroy(readDate + ttl);
-	}
+	// WHY: keep view-once and self-destruct media, no local burn.
 }
 
 PreparedServiceText HistoryItem::prepareInvitedToCallText(

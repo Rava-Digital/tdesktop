@@ -1009,7 +1009,7 @@ bool MediaPhoto::hasSpoiler() const {
 }
 
 crl::time MediaPhoto::ttlSeconds() const {
-	return (_ttlSeconds == kTimeToLiveSingleView) ? 0 : _ttlSeconds;
+	return _ttlSeconds;
 }
 
 bool MediaPhoto::allowsForward() const {
@@ -1095,10 +1095,6 @@ MediaFile::MediaFile(
 , _hasQualitiesList(args.hasQualitiesList)
 , _spoiler(args.spoiler) {
 	parent->history()->owner().registerDocumentItem(_document, parent);
-
-	if (_ttlSeconds && (_ttlSeconds != kTimeToLiveSingleView)) {
-		_document->setForbidsFileSave();
-	}
 
 	if (!_emoji.isEmpty()) {
 		if (const auto emoji = Ui::Emoji::Find(_emoji)) {
@@ -1425,7 +1421,7 @@ bool MediaFile::hasSpoiler() const {
 }
 
 crl::time MediaFile::ttlSeconds() const {
-	return (_ttlSeconds == kTimeToLiveSingleView) ? 0 : _ttlSeconds;
+	return _ttlSeconds;
 }
 
 bool MediaFile::allowsForward() const {
