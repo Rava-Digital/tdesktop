@@ -533,16 +533,7 @@ bool AmbientScreenshotProtectionSupported() {
 }
 
 void SetWindowScreenshotProtection(not_null<QWidget*> window, bool enabled) {
-	const auto handle = window->internalWinId();
-	if (!handle) {
-		return;
-	}
-	const auto hwnd = reinterpret_cast<HWND>(handle);
-	if (!enabled) {
-		SetWindowDisplayAffinity(hwnd, WDA_NONE);
-	} else if (!SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)) {
-		SetWindowDisplayAffinity(hwnd, WDA_MONITOR);
-	}
+	// WHY: screenshot protection is disabled.
 }
 
 void SetWindowPriority(not_null<QWidget*> window, uint32 priority) {
