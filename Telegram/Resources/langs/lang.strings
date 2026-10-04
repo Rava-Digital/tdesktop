@@ -344,6 +344,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_proxy_check_ip_proceed" = "Proceed";
 
 "lng_edit_deleted" = "This message was deleted";
+"lng_edit_history" = "Edit history";
 "lng_edit_limit_reached#one" = "You've reached the message text limit. Please make the text shorter by {count} character.";
 "lng_edit_limit_reached#other" = "You've reached the message text limit. Please make the text shorter by {count} characters.";
 "lng_edit_message" = "Edit message";

@@ -142,6 +142,19 @@ struct HistoryMessageEdited
 	TimeId date = 0;
 };
 
+struct HistoryMessageDeleted
+: RuntimeComponent<HistoryMessageDeleted, HistoryItem> {
+};
+
+struct HistoryMessageEditHistory
+: RuntimeComponent<HistoryMessageEditHistory, HistoryItem> {
+	struct Entry {
+		TimeId date = 0;
+		TextWithEntities text;
+	};
+	std::vector<Entry> entries;
+};
+
 struct HistoryMessageMediaForInstantView
 : RuntimeComponent<HistoryMessageMediaForInstantView, HistoryItem> {
 	using Item = std::variant<PhotoData*, DocumentData*>;

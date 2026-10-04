@@ -3342,11 +3342,27 @@ void Session::checkFormattedDateUpdates() {
 void Session::processMessagesDeleted(
 		PeerId peerId,
 		const QVector<MTPint> &data) {
-	// WHY: keep messages deleted by others (anti-delete).
+	const auto list = messagesList(peerId);
+	const auto affected = historyLoaded(peerId);
+	if (!list && !affected) {
+		return;
+	}
+	for (const auto &messageId : data) {
+		const auto i = list ? list->find(messageId.v) : Messages::iterator();
+		if (list && i != list->end()) {
+			i->second->markDeleted();
+		} else if (affected) {
+			affected->unknownMessageDeleted(messageId.v);
+		}
+	}
 }
 
 void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
-	// WHY: keep messages deleted by others (anti-delete).
+	for (const auto &messageId : data) {
+		if (const auto item = nonChannelMessage(messageId.v)) {
+			item->markDeleted();
+		}
+	}
 }
 
 void Session::removeDependencyMessage(not_null<HistoryItem*> item) {

@@ -1873,7 +1873,9 @@ void HistoryItem::markMediaAndMentionRead() {
 		const auto at = std::get_if<TimeId>(&selfdestruct->destructAt);
 		if (at && !*at) {
 			const auto ttl = selfdestruct->timeToLive;
-			if (!std::get_if<TimeId>(&ttl)) {
+			if (const auto seconds = std::get_if<TimeId>(&ttl)) {
+				armMediaDestroy(base::unixtime::now() + *seconds);
+			} else {
 				selfdestruct->destructAt = TimeToLiveSingleView();
 			}
 		}
@@ -2444,6 +2446,18 @@ void HistoryItem::applyEdition(HistoryMessageEdition &&edition) {
 			*edition.mtpMedia,
 			edition.isMediaUnread)
 		: PreparedServiceText();
+	if (!updatingSavedLocalEdit && !edition.isEditHide) {
+		const auto before = originalText();
+		if (!before.empty() && before != updatedText) {
+			AddComponents(HistoryMessageEditHistory::Bit());
+			Get<HistoryMessageEditHistory>()->entries.push_back({
+				.date = (edition.editDate != -1)
+					? edition.editDate
+					: base::unixtime::now(),
+				.text = before,
+			});
+		}
+	}
 	if (updatingSavedLocalEdit) {
 		Get<HistoryMessageSavedMediaData>()->text = std::move(updatedText);
 	} else if (!serviceText.text.empty()) {
@@ -2906,37 +2920,14 @@ void HistoryItem::contributeToSlowmode(TimeId realDate) {
 }
 
 void HistoryItem::clearMediaAsExpired() {
-	const auto media = this->media();
-	if (!media || !media->ttlSeconds()) {
-		return;
-	}
-	unarmMediaDestroy();
-	auto &owner = _history->owner();
-	if (const auto document = media->document()) {
-		document->cancel();
-		if (const auto active = document->activeMediaView()) {
-			active->setBytes(QByteArray());
-		}
-		owner.cache().remove(document->cacheKey());
-		owner.cache().remove(document->goodThumbnailCacheKey());
+	// WHY: keep view-once and self-destruct media, no local burn.
+}
 
-		applyEditionToHistoryCleared();
-		auto text = (document->isVideoFile()
-			? tr::lng_ttl_video_expired
-			: document->isVoiceMessage()
-			? tr::lng_ttl_voice_expired
-			: document->isVideoMessage()
-			? tr::lng_ttl_round_expired
-			: tr::lng_message_empty)(tr::now, tr::marked);
-		updateServiceText({ std::move(text) });
-		_flags |= MessageFlag::ReactionsAllowed;
-	} else if (const auto photo = media->photo()) {
-		applyEditionToHistoryCleared();
-		photo->clearLocalCache();
-		updateServiceText({
-			tr::lng_ttl_photo_expired(tr::now, tr::marked)
-		});
-		_flags |= MessageFlag::ReactionsAllowed;
+void HistoryItem::markDeleted() {
+	// WHY: keep messages deleted by others, show a deleted tag instead.
+	if (!Has<HistoryMessageDeleted>()) {
+		AddComponents(HistoryMessageDeleted::Bit());
+		_history->owner().requestItemResize(this);
 	}
 }
 
@@ -3304,21 +3295,19 @@ bool HistoryItem::canStopPoll() const {
 }
 
 bool HistoryItem::forbidsForward() const {
-	return false; // WHY: allow forwarding of any message.
+	return (_flags & MessageFlag::NoForwards);
 }
 
 bool HistoryItem::forbidsSaving() const {
-	if (forbidsForward()) {
-		return true;
-	} else if (const auto invoice = _media ? _media->invoice() : nullptr) {
+	// WHY: saving is client-side, allowed on noforwards and ttl media.
+	if (const auto invoice = _media ? _media->invoice() : nullptr) {
 		return HasExtendedMedia(*invoice);
 	}
 	return false;
 }
 
 bool HistoryItem::allowsMediaDownloadControls() const {
-	return !forbidsSaving()
-		&& _history->peer->allowsForwarding();
+	return !forbidsSaving();
 }
 
 bool HistoryItem::canDelete() const {
@@ -8237,7 +8226,23 @@ void HistoryItem::unarmMediaDestroy() {
 }
 
 void HistoryItem::applyMediaContentsRead(TimeId readDate) {
-	// WHY: keep view-once and self-destruct media, no local burn.
+	const auto media = _media.get();
+	const auto ttl = media ? TimeId(media->ttlSeconds()) : TimeId();
+	if (ttl <= 0) {
+		return;
+	}
+	const auto now = base::unixtime::now();
+	if (media->ttlSecondsSingleView() || !readDate || readDate + ttl <= now) {
+		clearMediaAsExpired();
+	} else {
+		AddComponents(HistoryServiceSelfDestruct::Bit());
+		const auto selfdestruct = Get<HistoryServiceSelfDestruct>();
+		selfdestruct->timeToLive = ttl;
+		selfdestruct->type = media->document()
+			? HistoryServiceSelfDestruct::Type::Video
+			: HistoryServiceSelfDestruct::Type::Photo;
+		armMediaDestroy(readDate + ttl);
+	}
 }
 
 PreparedServiceText HistoryItem::prepareInvitedToCallText(

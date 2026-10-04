@@ -58,6 +58,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/boxes/edit_factcheck_box.h"
 #include "ui/boxes/report_box_graphics.h"
 #include "ui/painter.h"
+#include "ui/vertical_list.h"
 #include "ui/rect.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/pill_tabs.h"
@@ -1424,6 +1425,53 @@ void AddMessageActions(
 	AddRescheduleAction(menu, request, list);
 }
 
+void EditHistoryBox(
+		not_null<Ui::GenericBox*> box,
+		std::vector<HistoryMessageEditHistory::Entry> entries) {
+	box->setTitle(tr::lng_edit_history());
+	const auto container = box->verticalLayout();
+	for (auto i = entries.size(); i > 0; --i) {
+		const auto &entry = entries[i - 1];
+		Ui::AddSubsectionTitle(
+			container,
+			rpl::single(base::unixtime::parse(entry.date)
+				.toString(u"dd.MM.yyyy HH:mm"_q)));
+		if (!entry.text.text.isEmpty()) {
+			Ui::AddDividerText(container, rpl::single(entry.text));
+		}
+	}
+	box->addButton(tr::lng_close(), [=] { box->closeBox(); });
+}
+
+void AddEditHistoryAction(
+		not_null<Ui::PopupMenu*> menu,
+		const ContextMenuRequest &request,
+		not_null<ListWidget*> list) {
+	const auto item = request.item;
+	if (!item || !request.selectedItems.empty()) {
+		return;
+	}
+	const auto history = item->Get<HistoryMessageEditHistory>();
+	if (!history || history->entries.empty()) {
+		return;
+	}
+	const auto controller = list->controller();
+	const auto itemId = item->fullId();
+	menu->addAction(tr::lng_edit_history(tr::now), crl::guard(
+		controller,
+		[=] {
+			const auto item = controller->session().data().message(itemId);
+			const auto saved = item
+				? item->Get<HistoryMessageEditHistory>()
+				: nullptr;
+			if (saved && !saved->entries.empty()) {
+				controller->show(Box(
+					EditHistoryBox,
+					std::vector(saved->entries)));
+			}
+		}));
+}
+
 void AddCopyLinkAction(
 		not_null<Ui::PopupMenu*> menu,
 		const ClickHandlerPtr &link) {
@@ -1938,6 +1986,7 @@ void FillContextMenuItems(
 
 	AddCopyLinkAction(result, link);
 	AddMessageActions(result, request, list);
+	AddEditHistoryAction(result, request, list);
 
 	const auto wasAmount = result->actions().size();
 	if (const auto textItem = view ? view->textItem() : item) {

@@ -423,6 +423,7 @@ public:
 	void contributeToSlowmode(TimeId realDate = 0);
 
 	void clearMediaAsExpired();
+	void markDeleted();
 
 	void addToUnreadThings(HistoryUnreadThings::AddType type);
 	void destroyHistoryEntry();
