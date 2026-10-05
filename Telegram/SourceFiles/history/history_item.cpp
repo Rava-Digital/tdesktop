@@ -2448,14 +2448,19 @@ void HistoryItem::applyEdition(HistoryMessageEdition &&edition) {
 		: PreparedServiceText();
 	if (!updatingSavedLocalEdit && !edition.isEditHide) {
 		const auto before = originalText();
-		if (!before.empty() && before != updatedText) {
-			AddComponents(HistoryMessageEditHistory::Bit());
-			Get<HistoryMessageEditHistory>()->entries.push_back({
-				.date = (edition.editDate != -1)
-					? edition.editDate
-					: base::unixtime::now(),
-				.text = before,
-			});
+		if (!before.empty()) {
+			if (!Has<HistoryMessageEditHistory>()) {
+				AddComponents(HistoryMessageEditHistory::Bit());
+			}
+			auto &entries = Get<HistoryMessageEditHistory>()->entries;
+			if (entries.empty() || entries.back().text != before) {
+				entries.push_back({
+					.date = (edition.editDate != -1)
+						? edition.editDate
+						: base::unixtime::now(),
+					.text = before,
+				});
+			}
 		}
 	}
 	if (updatingSavedLocalEdit) {
