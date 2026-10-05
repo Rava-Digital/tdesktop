@@ -148,13 +148,13 @@ jobs:
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
           -v ${{ env.CCACHE_DIR }}:/var/cache/ccache \
-          -e CONFIG=Debug \
+          -e CONFIG=Release \
           -e CCACHE_SLOPPINESS=pch_defines,time_macros \
           $IMAGE_TAG \
           env -u CCACHE_DISABLE /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
-          -D CMAKE_CONFIGURATION_TYPES=Debug \
-          -D CMAKE_C_FLAGS_DEBUG="-O0 -fpch-preprocess" \
-          -D CMAKE_CXX_FLAGS_DEBUG="-O0 -fpch-preprocess" \
+          -D CMAKE_CONFIGURATION_TYPES=Release \
+          -D CMAKE_C_FLAGS_RELEASE="-O2" \
+          -D CMAKE_CXX_FLAGS_RELEASE="-O2" \
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON \
           -D TDESKTOP_API_TEST=ON \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
@@ -190,7 +190,7 @@ jobs:
       - name: Check.
         if: env.ONLY_CACHE == 'false'
         run: |
-          filePath="out/Debug/Telegram"
+          filePath="out/Release/Telegram"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
 
@@ -201,16 +201,40 @@ jobs:
             exit 1
           fi
 
-      - name: Move artifact.
+      - name: Package AppImage.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          cd out/Debug
-          mkdir artifact
-          mv {Telegram,Updater} artifact/
+          set -e
+          mkdir -p AppDir
+          cp out/Release/Telegram AppDir/Telegram
+          cp Telegram/Resources/art/icon256.png AppDir/org.telegram.desktop.png
+          printf '%s\n' \
+            '[Desktop Entry]' \
+            'Name=Telegram' \
+            'Comment=New era of messaging' \
+            'Exec=Telegram -- %U' \
+            'Icon=org.telegram.desktop' \
+            'Terminal=false' \
+            'Type=Application' \
+            'Categories=Chat;Network;InstantMessaging;Qt;' \
+            'MimeType=x-scheme-handler/tg;' \
+            > AppDir/org.telegram.desktop.desktop
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'cd "$(dirname "$0")"' \
+            'exec ./Telegram "$@"' \
+            > AppDir/AppRun
+          chmod +x AppDir/AppRun AppDir/Telegram
+          curl -fsSL -o appimagetool \
+            https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 \
+            ./appimagetool AppDir Telegram.AppImage
+
       - uses: actions/upload-artifact@v7
         if: env.UPLOAD_ARTIFACT == 'true'
-        name: Upload artifact.
+        name: Upload AppImage.
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: out/Debug/artifact/
+          path: Telegram.AppImage
           retention-days: 1
