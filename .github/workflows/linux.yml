@@ -226,7 +226,7 @@ jobs:
             > AppDir/AppRun
           chmod +x AppDir/AppRun AppDir/Telegram
           curl -fsSL -o appimagetool \
-            https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
           APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 \
             ./appimagetool AppDir Telegram.AppImage
@@ -237,4 +237,42 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: Telegram.AppImage
+          retention-days: 1
+
+      - name: Package Debian package.
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          set -e
+          VERSION="$(awk '$1 == "AppVersionStr" { print $2; exit }' Telegram/build/version)"
+          if [ "$(awk '$1 == "BetaChannel" { print $2; exit }' Telegram/build/version)" != "0" ]; then
+            VERSION="$VERSION~beta"
+          fi
+          PKG=deb-package
+          mkdir -p "$PKG/DEBIAN" "$PKG/usr/bin" \
+            "$PKG/usr/share/applications" \
+            "$PKG/usr/share/icons/hicolor/256x256/apps"
+          cp out/Release/Telegram "$PKG/usr/bin/Telegram"
+          cp Telegram/Resources/art/icon256.png \
+            "$PKG/usr/share/icons/hicolor/256x256/apps/org.telegram.desktop.png"
+          printf '%s\n' \
+            '[Desktop Entry]' \
+            'Name=Telegram' \
+            'Comment=New era of messaging' \
+            'Exec=Telegram -- %U' \
+            'Icon=org.telegram.desktop' \
+            'Terminal=false' \
+            'Type=Application' \
+            'Categories=Chat;Network;InstantMessaging;Qt;' \
+            'MimeType=x-scheme-handler/tg;' \
+            > "$PKG/usr/share/applications/org.telegram.desktop.desktop"
+          printf 'Package: telegram-desktop\nVersion: %s\nSection: net\nPriority: optional\nArchitecture: amd64\nMaintainer: Rava-Digital\nDepends: libc6\nDescription: Telegram Desktop (modded)\n New era of messaging.\n' \
+            "$VERSION" > "$PKG/DEBIAN/control"
+          dpkg-deb --build "$PKG" "Telegram_${VERSION}_amd64.deb"
+
+      - uses: actions/upload-artifact@v7
+        if: env.UPLOAD_ARTIFACT == 'true'
+        name: Upload Debian package.
+        with:
+          name: Telegram deb
+          path: Telegram_*_amd64.deb
           retention-days: 1
