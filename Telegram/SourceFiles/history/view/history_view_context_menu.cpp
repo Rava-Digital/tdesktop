@@ -1443,16 +1443,6 @@ void EditHistoryBox(
 	box->addButton(tr::lng_close(), [=] { box->closeBox(); });
 }
 
-void ShowEditHistoryBox(
-		not_null<Window::SessionController*> controller,
-		not_null<HistoryItem*> item) {
-	const auto history = item->Get<HistoryMessageEditHistory>();
-	if (!history || history->entries.empty()) {
-		return;
-	}
-	controller->show(Box(EditHistoryBox, std::vector(history->entries)));
-}
-
 void AddEditHistoryAction(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
@@ -1702,6 +1692,16 @@ void EditTagBox(
 }
 
 } // namespace
+
+void ShowEditHistoryBox(
+		not_null<Window::SessionController*> controller,
+		not_null<HistoryItem*> item) {
+	const auto history = item->Get<HistoryMessageEditHistory>();
+	if (!history || history->entries.empty()) {
+		return;
+	}
+	controller->show(Box(EditHistoryBox, std::vector(history->entries)));
+}
 
 std::optional<QString> CurrentVoiceTimecode(FullMsgId itemId) {
 	const auto state = ::Media::Player::instance()->getState(
