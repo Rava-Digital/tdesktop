@@ -221,7 +221,6 @@ TextState BottomInfo::textState(
 			st::msgDateFont->height);
 		if (dateRect.contains(position)) {
 			result.link = editHistoryLink(view);
-			result.cursor = CursorState::PointingHand;
 		}
 	}
 	return result;
