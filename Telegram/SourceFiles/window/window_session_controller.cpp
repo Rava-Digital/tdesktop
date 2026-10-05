@@ -143,9 +143,7 @@ base::options::toggle OptionExternalMediaViewer({
 });
 
 [[nodiscard]] bool HasSavingRestriction(HistoryItem *item) {
-	return item
-		&& (item->forbidsSaving()
-			|| !item->history()->peer->allowsForwarding());
+	return item && item->forbidsSaving();
 }
 
 class MainWindowShow final : public ChatHelpers::Show {
