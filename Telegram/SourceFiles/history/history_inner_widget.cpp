@@ -3921,7 +3921,8 @@ bool HistoryInner::hasCopyRestriction(HistoryItem *item) const {
 
 bool HistoryInner::hasCopyMediaRestriction(
 		not_null<HistoryItem*> item) const {
-	return hasCopyRestriction(item) || item->forbidsSaving();
+	// WHY: saving is decoupled from forwarding on noforward channels.
+	return item->forbidsSaving();
 }
 
 bool HistoryInner::showCopyRestriction(HistoryItem *item) {
