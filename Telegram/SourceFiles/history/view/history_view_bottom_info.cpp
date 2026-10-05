@@ -513,7 +513,7 @@ void BottomInfo::layoutDateText() {
 		&& (_data.flags & Data::Flag::EditedPrimary)
 		&& !(_data.flags & Data::Flag::ForwardedDate);
 	const auto deleted = (_data.flags & Data::Flag::WasDeleted)
-		? (tr::lng_edit_deleted(tr::now) + ' ')
+		? u"\u2298 "_q
 		: QString();
 	const auto edited = editedPrimary
 		? QString()

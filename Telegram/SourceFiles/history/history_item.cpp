@@ -2927,7 +2927,7 @@ void HistoryItem::markDeleted() {
 	// WHY: keep messages deleted by others, show a deleted tag instead.
 	if (!Has<HistoryMessageDeleted>()) {
 		AddComponents(HistoryMessageDeleted::Bit());
-		_history->owner().requestItemResize(this);
+		_history->owner().notifyItemDataChange(this);
 	}
 }
 
