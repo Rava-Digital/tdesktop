@@ -1443,6 +1443,16 @@ void EditHistoryBox(
 	box->addButton(tr::lng_close(), [=] { box->closeBox(); });
 }
 
+void ShowEditHistoryBox(
+		not_null<Window::SessionController*> controller,
+		not_null<HistoryItem*> item) {
+	const auto history = item->Get<HistoryMessageEditHistory>();
+	if (!history || history->entries.empty()) {
+		return;
+	}
+	controller->show(Box(EditHistoryBox, std::vector(history->entries)));
+}
+
 void AddEditHistoryAction(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
@@ -1460,14 +1470,8 @@ void AddEditHistoryAction(
 	menu->addAction(tr::lng_edit_history(tr::now), crl::guard(
 		controller,
 		[=] {
-			const auto item = controller->session().data().message(itemId);
-			const auto saved = item
-				? item->Get<HistoryMessageEditHistory>()
-				: nullptr;
-			if (saved && !saved->entries.empty()) {
-				controller->show(Box(
-					EditHistoryBox,
-					std::vector(saved->entries)));
+			if (const auto item = controller->session().data().message(itemId)) {
+				ShowEditHistoryBox(controller, item);
 			}
 		}));
 }

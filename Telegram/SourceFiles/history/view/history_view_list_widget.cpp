@@ -6779,10 +6779,7 @@ CopyRestrictionType CopyRestrictionTypeFor(
 CopyRestrictionType CopyMediaRestrictionTypeFor(
 		not_null<PeerData*> peer,
 		not_null<HistoryItem*> item) {
-	if (const auto all = CopyRestrictionTypeFor(peer, item)
-		; all != CopyRestrictionType::None) {
-		return all;
-	}
+	// WHY: saving is decoupled from forwarding on noforward channels.
 	return !item->forbidsSaving()
 		? CopyRestrictionType::None
 		: peer->isUser()

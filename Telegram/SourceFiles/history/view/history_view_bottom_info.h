@@ -48,6 +48,7 @@ public:
 			Ephemeral      = 0x1000,
 			Updated        = 0x2000,
 			WasDeleted     = 0x4000,
+			EditedHistory  = 0x8000,
 			//Unread, // We don't want to pass and update it in Date for now.
 		};
 		friend inline constexpr bool is_flag_type(Flag) { return true; };
@@ -119,6 +120,8 @@ private:
 		not_null<const Message*> view,
 		QPoint position) const;
 	[[nodiscard]] ClickHandlerPtr replayEffectLink(
+		not_null<const Message*> view) const;
+	[[nodiscard]] ClickHandlerPtr editHistoryLink(
 		not_null<const Message*> view) const;
 
 	const not_null<::Data::Reactions*> _reactionsOwner;

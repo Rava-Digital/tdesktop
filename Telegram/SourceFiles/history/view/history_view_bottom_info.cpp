@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/view/media/history_view_media.h"
 #include "history/view/history_view_message.h"
+#include "history/view/history_view_context_menu.h"
 #include "history/view/history_view_cursor_state.h"
 #include "base/unixtime.h"
 #include "chat_helpers/emoji_interactions.h"
@@ -212,6 +213,17 @@ TextState BottomInfo::textState(
 	if (inTime) {
 		result.cursor = CursorState::Date;
 	}
+	if (_data.flags & Data::Flag::EditedHistory) {
+		const auto dateRect = QRect(
+			width() - withTicksWidth,
+			0,
+			textWidth,
+			st::msgDateFont->height);
+		if (dateRect.contains(position)) {
+			result.link = editHistoryLink(view);
+			result.cursor = CursorState::PointingHand;
+		}
+	}
 	return result;
 }
 
@@ -253,6 +265,19 @@ ClickHandlerPtr BottomInfo::replayEffectLink(
 		if ([[maybe_unused]] const auto controller = my.sessionWindow.get()) {
 			if (const auto strong = weak.get()) {
 				strong->delegate()->elementStartEffect(strong, nullptr);
+			}
+		}
+	});
+}
+
+ClickHandlerPtr BottomInfo::editHistoryLink(
+		not_null<const Message*> view) const {
+	const auto weak = base::make_weak(view);
+	return std::make_shared<LambdaClickHandler>([=](ClickContext context) {
+		const auto my = context.other.value<ClickHandlerContext>();
+		if (const auto controller = my.sessionWindow.get()) {
+			if (const auto strong = weak.get()) {
+				ShowEditHistoryBox(controller, strong->data());
 			}
 		}
 	});
@@ -703,6 +728,11 @@ BottomInfo::Data BottomInfoDataFromMessage(not_null<Message*> message) {
 	}
 	if (item->Has<HistoryMessageDeleted>()) {
 		result.flags |= Flag::WasDeleted;
+	}
+	if (const auto editHistory = item->Get<HistoryMessageEditHistory>()) {
+		if (!editHistory->entries.empty()) {
+			result.flags |= Flag::EditedHistory;
+		}
 	}
 	if (const auto views = item->Get<HistoryMessageViews>()) {
 		if (views->views.count >= 0) {
