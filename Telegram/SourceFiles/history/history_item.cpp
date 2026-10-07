@@ -2934,6 +2934,17 @@ void HistoryItem::markDeleted() {
 		AddComponents(HistoryMessageDeleted::Bit());
 		_history->owner().notifyItemDataChange(this);
 	}
+	// WHY: albums paint the date row only on the last item, so the whole
+	// group must carry the tag for the icon to show.
+	if (const auto group = _history->owner().groups().find(this)) {
+		for (const auto &other : group->items) {
+			if (other.get() != this
+				&& !other->Has<HistoryMessageDeleted>()) {
+				other->AddComponents(HistoryMessageDeleted::Bit());
+				_history->owner().notifyItemDataChange(other);
+			}
+		}
+	}
 }
 
 void HistoryItem::addToUnreadThings(HistoryUnreadThings::AddType type) {
